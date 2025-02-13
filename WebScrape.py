@@ -9,15 +9,18 @@ def download_image(url, folder, index):
         print(url)
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            image = Image.open(BytesIO(response.content))
-            width, height = image.size
-            if (("image/jpeg" in response.headers.get("Content-Type", "")) and (width>100 and height>100)):
+            if ("image/jpeg" in response.headers.get("Content-Type", "")):
                 file_extension = ".jpg"
                 filename = os.path.join(folder, f"{folder}_image_{index}{file_extension}")
-                with open(filename, "wb") as file:
-                    file.write(response.content)
-                print(f"Downloaded: {filename}")
-                return (index + 1)
+                
+                image = Image.open(BytesIO(response.content))
+                width, height = image.size
+
+                if (width>100 and height>100):
+                    with open(filename, "wb") as file:
+                        file.write(response.content)
+                    print(f"Downloaded: {filename}")
+                    return (index + 1)
             return index
         else:
             print(f"Failed to download {url}")
@@ -26,8 +29,8 @@ def download_image(url, folder, index):
         print(f"Error downloading {url}: {e}")
         return index
 
-def scrape_google_images(query, max_images):
-    folder = query.replace(" ", "_")
+def scrape_google_images(query, folder_name, max_images):
+    folder = folder_name.replace(" ", "_")
     os.makedirs(folder, exist_ok=True)
 
     with sync_playwright() as pw:
@@ -40,7 +43,6 @@ def scrape_google_images(query, max_images):
         image_links = set()  # Use a set to avoid duplicates
 
         while len(image_links) < max_images:
-            print(len(image_links))
             page.evaluate("window.scrollBy(0, document.body.scrollHeight)")
             page.wait_for_timeout(2000)  # Wait 2 seconds for new images to load
 
@@ -56,17 +58,19 @@ def scrape_google_images(query, max_images):
                     break
 
         print(f"Total Images Found: {len(image_links)}")
+        print(f"Downloading {number_of_images} images of {search_prompt}")
 
         downloaded_images = 0
         for index, link in enumerate(image_links):
             if (downloaded_images>=int(max_images/5)):
                 break
             if (link.startswith("http")):
-                downloaded_images = download_image(link, query, downloaded_images)
+                downloaded_images = download_image(link, folder, downloaded_images)
 
         browser.close()
         return image_links
 
-number_of_images = 50
-search_prompt = "cat"
-image_urls = scrape_google_images(search_prompt, number_of_images*5)
+search_prompt = input("Enter search prompt: ")
+folder_name = input("Enter folder name: ")
+number_of_images = int(input("Enter number of images: "))
+image_urls = scrape_google_images(search_prompt, folder_name, number_of_images*5)
