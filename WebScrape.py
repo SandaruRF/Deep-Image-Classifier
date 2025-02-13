@@ -1,17 +1,22 @@
 from playwright.sync_api import sync_playwright
 import os
 import requests
+from io import BytesIO
+from PIL import Image
 
 def download_image(url, folder, index):
     try:
         print(url)
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            file_extension = ".jpg" if "image/jpeg" in response.headers.get("Content-Type", "") else ".png"
-            filename = os.path.join(folder, f"{folder}_image_{index}{file_extension}")
-            with open(filename, "wb") as file:
-                file.write(response.content)
-            print(f"Downloaded: {filename}")
+            image = Image.open(BytesIO(response.content))
+            width, height = image.size
+            if (("image/jpeg" in response.headers.get("Content-Type", "")) and (width>100 and height>100)):
+                file_extension = ".jpg"
+                filename = os.path.join(folder, f"{folder}_image_{index}{file_extension}")
+                with open(filename, "wb") as file:
+                    file.write(response.content)
+                print(f"Downloaded: {filename}")
         else:
             print(f"Failed to download {url}")
     except Exception as e:
