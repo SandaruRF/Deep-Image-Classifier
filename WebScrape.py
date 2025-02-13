@@ -17,10 +17,14 @@ def download_image(url, folder, index):
                 with open(filename, "wb") as file:
                     file.write(response.content)
                 print(f"Downloaded: {filename}")
+                return (index + 1)
+            return index
         else:
             print(f"Failed to download {url}")
+            return index
     except Exception as e:
         print(f"Error downloading {url}: {e}")
+        return index
 
 def scrape_google_images(query, max_images):
     folder = query.replace(" ", "_")
@@ -53,11 +57,16 @@ def scrape_google_images(query, max_images):
 
         print(f"Total Images Found: {len(image_links)}")
 
+        downloaded_images = 0
         for index, link in enumerate(image_links):
-            if link.startswith("http"):
-                download_image(link, query, index)
+            if (downloaded_images>=int(max_images/5)):
+                break
+            if (link.startswith("http")):
+                downloaded_images = download_image(link, query, downloaded_images)
 
         browser.close()
         return image_links
 
-image_urls = scrape_google_images("cat", 200)
+number_of_images = 50
+search_prompt = "cat"
+image_urls = scrape_google_images(search_prompt, number_of_images*5)
